@@ -16,6 +16,7 @@ interface Message {
 }
 
 export default function Home() {
+  const [sessionId, setSessionId] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ export default function Home() {
     formData.append("file", file);
     try {
       const res = await axios.post(`${API}/ingest`, formData);
+      setSessionId(res.data.session_id);
       setUploadStatus(`✅ ${res.data.filename} ingested — ${res.data.chunks} chunks`);
     } catch {
       setUploadStatus("❌ Upload failed");
@@ -42,12 +44,27 @@ export default function Home() {
 
   async function handleAsk() {
     if (!question.trim() || loading) return;
+    if (!sessionId) {
+        alert("Please upload a PDF first.");
+        return;
+    }
     const userMsg: Message = { role: "user", content: question };
     setMessages((prev) => [...prev, userMsg]);
     setQuestion("");
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/query`, { question });
+      const history = messages
+        .filter((_, i) => i % 2 === 0)
+        .map((msg, i) => ({
+          question: msg.content,
+          answer: messages[i * 2 + 1]?.content || ""
+        }));
+
+      const res = await axios.post(`${API}/query`, {
+        question,
+        session_id: sessionId,
+        chat_history: history
+      });
       const botMsg: Message = {
         role: "assistant",
         content: res.data.answer,

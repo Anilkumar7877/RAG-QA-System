@@ -3,14 +3,13 @@ from dotenv import load_dotenv
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 
 load_dotenv()
 
 CHROMA_PATH = "./chroma_db"
-DATA_PATH = "../data"
 
-def ingest_pdf(pdf_path: str):
+def ingest_pdf(pdf_path: str, session_id: str) -> int:
     print(f"Loading {pdf_path}...")
     loader = PyMuPDFLoader(pdf_path)
     docs = loader.load()
@@ -23,23 +22,22 @@ def ingest_pdf(pdf_path: str):
     chunks = splitter.split_documents(docs)
     print(f"  Split into {len(chunks)} chunks")
 
-    print("  Generating embeddings (first run downloads model ~90MB)...")
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2"
-    )
+    if len(chunks) == 0:
+        raise ValueError(
+            f"No text extracted from {pdf_path}. "
+            "PDF may be scanned or image-based."
+        )
 
-    vectorstore = Chroma.from_documents(
+    print("  Generating embeddings...")
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
+    # Each session gets its own isolated collection
+    Chroma.from_documents(
         chunks,
         embeddings,
-        persist_directory=CHROMA_PATH
+        persist_directory=CHROMA_PATH,
+        collection_name=session_id
     )
-    print(f"  Stored in ChromaDB at {CHROMA_PATH}")
-    return len(chunks)
 
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 2:
-        print("Usage: python ingest.py <path_to_pdf>")
-        sys.exit(1)
-    count = ingest_pdf(sys.argv[1])
-    print(f"\nDone! {count} chunks ingested.")
+    print(f"  Stored in collection: {session_id}")
+    return len(chunks)

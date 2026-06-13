@@ -8,12 +8,12 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
-print("API KEY:", os.getenv("GROQ_API_KEY"))
+
 CHROMA_PATH = "./chroma_db"
 
 PROMPT_TEMPLATE = """
 You are a helpful assistant. Answer the question using ONLY the context provided below.
-If the answer is not in the context, say "I don't have enough information to answer that."
+If the answer is not in the context, say "I don't have enough information to answer that from this document."
 Always mention which page the information came from.
 
 Context:
@@ -31,12 +31,13 @@ def format_docs(docs):
         for doc in docs
     )
 
-def get_chain():
+def get_chain(session_id: str):
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
     vectorstore = Chroma(
         persist_directory=CHROMA_PATH,
-        embedding_function=embeddings
+        embedding_function=embeddings,
+        collection_name=session_id  # ONLY this session's chunks
     )
 
     retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
@@ -62,19 +63,23 @@ def get_chain():
     return retriever, chain
 
 
-def ask(question: str) -> dict:
-    retriever, chain = get_chain()
+def ask(question: str, session_id: str, chat_history: list = []) -> dict:
+    retriever, chain = get_chain(session_id)
 
-    # Get source docs separately
+    # Build history context
+    history_text = ""
+    for msg in chat_history[-4:]:
+        history_text += f"Human: {msg['question']}\nAssistant: {msg['answer']}\n"
+
+    full_question = f"{history_text}Human: {question}" if history_text else question
+
     source_docs = retriever.invoke(question)
-
-    # Get answer
-    answer = chain.invoke(question)
+    answer = chain.invoke(full_question)
 
     sources = [
         {
             "page": doc.metadata.get("page", "?"),
-            "source": doc.metadata.get("source", "unknown")
+            "source": os.path.basename(doc.metadata.get("source", "unknown"))
         }
         for doc in source_docs
     ]
@@ -83,14 +88,3 @@ def ask(question: str) -> dict:
         "answer": answer,
         "sources": sources
     }
-
-
-if __name__ == "__main__":
-    print("RAG Q&A Ready. Type 'exit' to quit.\n")
-    while True:
-        question = input("You: ")
-        if question.lower() == "exit":
-            break
-        response = ask(question)
-        print(f"\nAnswer: {response['answer']}")
-        print(f"\nSources: {response['sources']}\n")
