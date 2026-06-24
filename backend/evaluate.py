@@ -18,6 +18,7 @@ from langchain_groq import ChatGroq
 from ragas.llms import LangchainLLMWrapper
 from langchain_chroma import Chroma
 
+from hybrid_retriever import get_hybrid_retriever
 from chain import ask
 
 load_dotenv()
@@ -52,9 +53,7 @@ def run_evaluation():
         collection_name=SESSION_ID
     )
 
-    retriever = vectorstore.as_retriever(
-        search_kwargs={"k": 5}
-    )
+    retriever, _ = get_hybrid_retriever(SESSION_ID)
 
     # Evaluation LLM
     evaluator_llm = LangchainLLMWrapper(
@@ -126,18 +125,17 @@ def run_evaluation():
         )
     )
 
-    with open(
-        "ragas_scores.json",
-        "w"
-    ) as f:
-        json.dump(
-            scores,
-            f,
-            indent=2
-        )
+    scores = {
+        "faithfulness": results["faithfulness"],
+        "answer_relevancy": results["answer_relevancy"],
+        "context_precision": results["context_precision"],
+        "mode": "hybrid"
+    }
+    with open("ragas_scores_hybrid.json", "w") as f:
+        json.dump(scores, f, indent=2)
 
     print(
-        "\nScores saved to ragas_scores.json"
+        "\nScores saved to ragas_scores_hybrid.json"
     )
 
     return scores

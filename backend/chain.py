@@ -6,6 +6,7 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+from hybrid_retriever import get_hybrid_retriever
 
 load_dotenv()
 
@@ -40,7 +41,8 @@ def get_chain(session_id: str):
         collection_name=session_id  # ONLY this session's chunks
     )
 
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    # Use hybrid instead of pure semantic
+    retriever, _ = get_hybrid_retriever(session_id)
 
     llm = ChatGroq(
         model="llama-3.3-70b-versatile",
