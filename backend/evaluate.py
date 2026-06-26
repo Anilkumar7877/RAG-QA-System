@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from datasets import Dataset
 
 from ragas import evaluate
+from ragas.run_config import RunConfig
 
 from ragas.metrics import (
     Faithfulness,
@@ -14,7 +15,7 @@ from ragas.metrics import (
 
 from ragas.embeddings import LangchainEmbeddingsWrapper
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from ragas.llms import LangchainLLMWrapper
 from langchain_chroma import Chroma
 
@@ -24,14 +25,14 @@ from chain import ask
 load_dotenv()
 
 TEST_QUESTIONS = [
-    "What is embedded AI?",
-    "What are the applications of embedded AI?",
-    "What is model optimization in embedded AI?",
-    "What are the computational foundations of embedded AI?",
-    "What is edge AI?",
+    "What landmark event in 1886 is widely recognized as the birth of the modern automobile, and who was responsible for it?",
+    "How did Henry Ford's implementation of the moving assembly line in 1913 alter the manufacturing process and retail accessibility of the Model T?",
+    "What are the four distinct engineering stages of a classic four-stroke internal combustion engine sequence, and what occurs during each?",
+    "What are the three core mechanical systems that replace traditional internal combustion engine components in a Battery Electric Vehicle (BEV)?",
+    "How does the concept of regenerative braking work in an electric vehicle, and what role does the power inverter play during this process?"
 ]
 
-SESSION_ID = "session_68a859afadad"
+SESSION_ID = "session_9a3922822d5d"
 
 
 def run_evaluation():
@@ -57,9 +58,9 @@ def run_evaluation():
 
     # Evaluation LLM
     evaluator_llm = LangchainLLMWrapper(
-        ChatGroq(
-            model="llama-3.3-70b-versatile",
-            api_key=os.getenv("GROQ_API_KEY"),
+        ChatGoogleGenerativeAI(
+            model="gemini-3.1-flash-lite",
+            api_key=os.getenv("GEMINI_API_KEY"),
             temperature=0
         )
     )
@@ -97,6 +98,7 @@ def run_evaluation():
         }
     )
 
+    run_config = RunConfig(max_workers=1)
     results = evaluate(
         dataset=dataset,
         metrics=[
@@ -106,6 +108,7 @@ def run_evaluation():
         ],
         llm=evaluator_llm,
         embeddings=evaluator_embeddings,
+        run_config=run_config,
     )
 
     df = results.to_pandas()
@@ -125,20 +128,20 @@ def run_evaluation():
         )
     )
 
-    scores = {
-        "faithfulness": results["faithfulness"],
-        "answer_relevancy": results["answer_relevancy"],
-        "context_precision": results["context_precision"],
+    mean_scores = {
+        "faithfulness": scores.get("faithfulness"),
+        "answer_relevancy": scores.get("answer_relevancy"),
+        "context_precision": scores.get("llm_context_precision_without_reference"),
         "mode": "hybrid"
     }
     with open("ragas_scores_hybrid.json", "w") as f:
-        json.dump(scores, f, indent=2)
+        json.dump(mean_scores, f, indent=2)
 
     print(
         "\nScores saved to ragas_scores_hybrid.json"
     )
 
-    return scores
+    return mean_scores
 
 
 if __name__ == "__main__":

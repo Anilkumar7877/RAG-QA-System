@@ -7,7 +7,7 @@ print(f"Total collections: {len(collections)}\n")
 
 for col in collections:
     count = col.count()
-    print(f"Collection: {col.name} → {count} chunks")
+    print(f"Collection: {col.name} -> {count} chunks")
     
     # Show sample chunk from each collection
     sample = col.get(limit=1)
