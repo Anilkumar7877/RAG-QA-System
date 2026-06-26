@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
@@ -11,6 +11,9 @@ from hybrid_retriever import get_hybrid_retriever
 load_dotenv()
 
 CHROMA_PATH = "./chroma_db"
+
+# Cache embedding model globally to avoid loading it on every query
+embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 PROMPT_TEMPLATE = """
 You are a helpful assistant. Answer the question using ONLY the context provided below.
@@ -33,20 +36,18 @@ def format_docs(docs):
     )
 
 def get_chain(session_id: str):
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-
     vectorstore = Chroma(
         persist_directory=CHROMA_PATH,
-        embedding_function=embeddings,
+        embedding_function=embeddings_model,
         collection_name=session_id  # ONLY this session's chunks
     )
 
     # Use hybrid instead of pure semantic
     retriever, _ = get_hybrid_retriever(session_id)
 
-    llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        api_key=os.getenv("GROQ_API_KEY"),
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        api_key=os.getenv("GEMINI_API_KEY"),
         temperature=0.2
     )
 

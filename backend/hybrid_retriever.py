@@ -1,17 +1,21 @@
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
+try:
+    from langchain_classic.retrievers import EnsembleRetriever
+except ImportError:
+    from langchain.retrievers import EnsembleRetriever
 
 CHROMA_PATH = "./chroma_db"
 
-def get_hybrid_retriever(session_id: str, docs=None, k: int = 5):
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# Cache embedding model globally to avoid loading it on every query
+embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
+def get_hybrid_retriever(session_id: str, docs=None, k: int = 3):
     # Semantic retriever
     vectorstore = Chroma(
         persist_directory=CHROMA_PATH,
-        embedding_function=embeddings,
+        embedding_function=embeddings_model,
         collection_name=session_id
     )
     semantic_retriever = vectorstore.as_retriever(search_kwargs={"k": k})
@@ -35,10 +39,10 @@ def get_hybrid_retriever(session_id: str, docs=None, k: int = 5):
     bm25_retriever = BM25Retriever.from_documents(docs)
     bm25_retriever.k = k
 
-    # Ensemble: 40% BM25 + 60% semantic
+    # Ensemble: 30% BM25 + 70% semantic
     hybrid = EnsembleRetriever(
         retrievers=[bm25_retriever, semantic_retriever],
-        weights=[0.4, 0.6]
+        weights=[0.3, 0.7]
     )
 
     return hybrid, docs

@@ -9,6 +9,9 @@ load_dotenv()
 
 CHROMA_PATH = "./chroma_db"
 
+# Cache embedding model globally to avoid loading it on every ingestion request
+embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
 def ingest_pdf(pdf_path: str, session_id: str) -> int:
     print(f"Loading {pdf_path}...")
     loader = PyMuPDFLoader(pdf_path)
@@ -28,13 +31,10 @@ def ingest_pdf(pdf_path: str, session_id: str) -> int:
             "PDF may be scanned or image-based."
         )
 
-    print("  Generating embeddings...")
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-
     # Each session gets its own isolated collection
     Chroma.from_documents(
         chunks,
-        embeddings,
+        embeddings_model,
         persist_directory=CHROMA_PATH,
         collection_name=session_id
     )
