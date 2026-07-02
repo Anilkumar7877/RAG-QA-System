@@ -15,7 +15,7 @@ app = FastAPI(title="RAG Document Q&A API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,7 +43,7 @@ def health():
 
 @app.post("/ingest")
 async def ingest(file: UploadFile = File(...)):
-    if not file.filename.endswith(".pdf"):
+    if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
     # Unique session per upload

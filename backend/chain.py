@@ -7,6 +7,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from hybrid_retriever import get_hybrid_retriever
+from reranker import RerankingRetriever
 
 load_dotenv()
 
@@ -42,8 +43,9 @@ def get_chain(session_id: str):
         collection_name=session_id  # ONLY this session's chunks
     )
 
-    # Use hybrid instead of pure semantic
-    retriever, _ = get_hybrid_retriever(session_id)
+    # Use hybrid with a larger k (e.g. 10) for reranking candidates
+    underlying_retriever, _ = get_hybrid_retriever(session_id, k=10)
+    retriever = RerankingRetriever(underlying_retriever=underlying_retriever, top_k=3)
 
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
@@ -56,9 +58,9 @@ def get_chain(session_id: str):
         input_variables=["context", "question"]
     )
 
+    # The chain now accepts the context directly to prevent running retrieval and reranking twice
     chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt
+        prompt
         | llm
         | StrOutputParser()
     )
@@ -76,8 +78,12 @@ def ask(question: str, session_id: str, chat_history: list = []) -> dict:
 
     full_question = f"{history_text}Human: {question}" if history_text else question
 
+    # Retrieve and rerank candidate documents once
     source_docs = retriever.invoke(question)
-    answer = chain.invoke(full_question)
+    
+    # Format document contexts and invoke the chain
+    context = format_docs(source_docs)
+    answer = chain.invoke({"context": context, "question": full_question})
 
     sources = [
         {

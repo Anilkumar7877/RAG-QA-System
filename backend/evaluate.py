@@ -19,8 +19,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from ragas.llms import LangchainLLMWrapper
 from langchain_chroma import Chroma
 
-from hybrid_retriever import get_hybrid_retriever
-from chain import ask
+from chain import ask, get_chain
 
 load_dotenv()
 
@@ -54,7 +53,7 @@ def run_evaluation():
         collection_name=SESSION_ID
     )
 
-    retriever, _ = get_hybrid_retriever(SESSION_ID)
+    retriever, _ = get_chain(SESSION_ID)
 
     # Evaluation LLM
     evaluator_llm = LangchainLLMWrapper(
@@ -132,13 +131,13 @@ def run_evaluation():
         "faithfulness": scores.get("faithfulness"),
         "answer_relevancy": scores.get("answer_relevancy"),
         "context_precision": scores.get("llm_context_precision_without_reference"),
-        "mode": "hybrid"
+        "mode": "reranked"
     }
-    with open("ragas_scores_hybrid.json", "w") as f:
+    with open("ragas_scores_reranked.json", "w") as f:
         json.dump(mean_scores, f, indent=2)
 
     print(
-        "\nScores saved to ragas_scores_hybrid.json"
+        "\nScores saved to ragas_scores_reranked.json"
     )
 
     return mean_scores
