@@ -75,3 +75,27 @@ async def query(request: QueryRequest):
 
     result = ask(request.question, request.session_id, request.chat_history)
     return result
+
+@app.get("/stats/{session_id}")
+async def stats(session_id: str):
+    import chromadb
+    client = chromadb.PersistentClient(path="../backend/chroma_db")
+    try:
+        collection = client.get_collection(session_id)
+        chunk_count = collection.count()
+    except:
+        chunk_count = 0
+
+    return {
+        "session_id": session_id,
+        "chunks": chunk_count,
+        "retrieval_mode": "Hybrid BM25 + Semantic",
+        "reranking": "Cross-Encoder (ms-marco-MiniLM-L-6-v2)",
+        "embedding_model": "all-MiniLM-L6-v2",
+        "llm": "Gemini 2.5 Flash",
+        "ragas_baseline": {
+            "faithfulness": 0.815,
+            "answer_relevancy": 0.736,
+            "context_precision": 0.633
+        }
+    }
