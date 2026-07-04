@@ -1,6 +1,7 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import Link from "next/link";
 
 const API = "http://localhost:8000";
 
@@ -25,20 +26,39 @@ export default function Home() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [stats, setStats] = useState<any>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get("session_id");
+    if (sid) {
+      setSessionId(sid);
+      axios
+        .get(`${API}/stats/${sid}`)
+        .then((res) => setStats(res.data))
+        .catch((err) => console.error("Failed to load stats for session", err));
+    }
+  }, []);
+
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    setUploadStatus("Uploading...");
+    setUploadStatus("Uploading and parsing document...");
     const formData = new FormData();
     formData.append("file", file);
     try {
       const res = await axios.post(`${API}/ingest`, formData);
-      setSessionId(res.data.session_id);
+      const newSessionId = res.data.session_id;
+      setSessionId(newSessionId);
+
+      // Update URL with session_id parameter
+      const nextUrl = `${window.location.pathname}?session_id=${newSessionId}`;
+      window.history.pushState(null, "", nextUrl);
+
       setUploadStatus(`✅ ${res.data.filename} ingested — ${res.data.chunks} chunks`);
-      const statsRes = await axios.get(`${API}/stats/${res.data.session_id}`);
+      const statsRes = await axios.get(`${API}/stats/${newSessionId}`);
       setStats(statsRes.data);
-    } catch {
+    } catch (err) {
+      console.error(err);
       setUploadStatus("❌ Upload failed");
     } finally {
       setUploading(false);
@@ -111,6 +131,23 @@ export default function Home() {
         {uploading && (
           <p className="mt-2 text-sm text-yellow-400">Processing chunks...</p>
         )}
+
+        {sessionId && (
+          <div className="mt-6 p-4 bg-gradient-to-r from-indigo-950 to-purple-950 rounded-lg border border-indigo-500/30 flex items-center justify-between shadow-lg shadow-indigo-950/20">
+            <div>
+              <h3 className="text-sm font-semibold text-white">Document Concept Mind Map</h3>
+              <p className="text-xs text-indigo-200 mt-1">
+                Explore an interactive knowledge graph of key concepts and relationships.
+              </p>
+            </div>
+            <Link
+              href={`/mindmap/${sessionId}`}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-md shadow-indigo-600/30 hover:shadow-indigo-500/40"
+            >
+              Explore Mind Map ➔
+            </Link>
+          </div>
+        )}
       </div>
 
       {sessionId && stats && (
@@ -168,8 +205,8 @@ export default function Home() {
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-lg rounded-xl px-4 py-3 text-sm ${msg.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-800 text-gray-100"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-800 text-gray-100"
                 }`}>
                 <p>{msg.content}</p>
                 {msg.sources && msg.sources.length > 0 && (
