@@ -24,3 +24,34 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+@layer utilities {
+  .minimal-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(156 163 175 / 0.5) transparent;
+  }
+
+  .minimal-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .minimal-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .minimal-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(156 163 175 / 0.5);
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+  }
+
+  .minimal-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(107 114 128 / 0.7);
+  }
+
+  .minimal-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}

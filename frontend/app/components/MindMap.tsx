@@ -327,18 +327,18 @@ export default function MindMap({ data }: Props) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-gray-950 overflow-hidden relative">
+    <div className="w-full h-full flex flex-col bg-[#070b13] overflow-hidden relative">
       {/* Legend & Stats Header */}
-      <div className="px-6 py-3 bg-gray-950 border-b border-gray-800/80 flex items-center justify-between shrink-0 select-none z-10">
+      <div className="px-6 py-3 bg-[#0f172a]/40 backdrop-blur border-b border-slate-800/80 flex items-center justify-between shrink-0 select-none z-10">
         <div>
           <h3 className="text-sm font-semibold text-white">{data.title}</h3>
-          <p className="text-[11px] text-gray-400 mt-0.5">
+          <p className="text-[11px] text-slate-400 mt-0.5">
             {data.nodes.length} concepts · {data.edges.length} relationships · Hover to focus, scroll/pinch or click to zoom/pan
           </p>
         </div>
         <div className="flex gap-4 text-xs">
           {Object.entries(NODE_COLORS).map(([type, color]) => (
-            <span key={type} className="flex items-center gap-1.5 text-gray-400">
+            <span key={type} className="flex items-center gap-1.5 text-slate-400">
               <span
                 className="w-2 h-2 rounded-full inline-block"
                 style={{ background: color }}
@@ -353,21 +353,21 @@ export default function MindMap({ data }: Props) {
       <div className="absolute bottom-6 right-6 flex flex-col gap-2 z-10">
         <button
           onClick={() => handleZoom("in")}
-          className="w-10 h-10 rounded-lg bg-gray-900/85 backdrop-blur border border-gray-800 hover:border-gray-600 text-white flex items-center justify-center font-bold text-lg shadow-lg hover:bg-gray-800/90 transition active:scale-95 cursor-pointer select-none"
+          className="w-10 h-10 rounded-lg bg-slate-900/85 backdrop-blur border border-slate-800 hover:border-slate-700 text-white flex items-center justify-center font-bold text-lg shadow-lg hover:bg-slate-800/90 transition active:scale-95 cursor-pointer select-none"
           title="Zoom In"
         >
           ＋
         </button>
         <button
           onClick={() => handleZoom("out")}
-          className="w-10 h-10 rounded-lg bg-gray-900/85 backdrop-blur border border-gray-800 hover:border-gray-600 text-white flex items-center justify-center font-bold text-lg shadow-lg hover:bg-gray-800/90 transition active:scale-95 cursor-pointer select-none"
+          className="w-10 h-10 rounded-lg bg-slate-900/85 backdrop-blur border border-slate-800 hover:border-slate-700 text-white flex items-center justify-center font-bold text-lg shadow-lg hover:bg-slate-800/90 transition active:scale-95 cursor-pointer select-none"
           title="Zoom Out"
         >
           －
         </button>
         <button
           onClick={() => handleZoom("reset")}
-          className="w-10 h-10 rounded-lg bg-gray-900/85 backdrop-blur border border-gray-800 hover:border-gray-600 text-white flex items-center justify-center text-[10px] font-semibold shadow-lg hover:bg-gray-800/90 transition active:scale-95 cursor-pointer select-none"
+          className="w-10 h-10 rounded-lg bg-slate-900/85 backdrop-blur border border-slate-800 hover:border-slate-700 text-white flex items-center justify-center text-[10px] font-semibold shadow-lg hover:bg-slate-800/90 transition active:scale-95 cursor-pointer select-none"
           title="Reset View"
         >
           RESET

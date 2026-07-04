@@ -25,6 +25,7 @@ export default function Home() {
   const [uploadStatus, setUploadStatus] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const [stats, setStats] = useState<any>(null);
+  const [filename, setFilename] = useState<string>("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -33,7 +34,12 @@ export default function Home() {
       setSessionId(sid);
       axios
         .get(`${API}/stats/${sid}`)
-        .then((res) => setStats(res.data))
+        .then((res) => {
+          setStats(res.data);
+          if (res.data.filename) {
+            setFilename(res.data.filename);
+          }
+        })
         .catch((err) => console.error("Failed to load stats for session", err));
     }
   }, []);
@@ -49,6 +55,7 @@ export default function Home() {
       const res = await axios.post(`${API}/ingest`, formData);
       const newSessionId = res.data.session_id;
       setSessionId(newSessionId);
+      setFilename(res.data.filename);
 
       // Update URL with session_id parameter
       const nextUrl = `${window.location.pathname}?session_id=${newSessionId}`;
@@ -104,168 +111,290 @@ export default function Home() {
     }
   }
 
-  return (
-    <main className="min-h-screen bg-gray-950 text-white flex flex-col items-center py-10 px-4">
-      <h1 className="text-3xl font-bold mb-2">RAG Document Q&A</h1>
-      <p className="text-gray-400 mb-8">Upload a PDF and ask questions about it</p>
-
-      {/* Upload Panel */}
-      <div className="w-full max-w-2xl bg-gray-900 rounded-xl p-6 mb-6 border border-gray-800">
-        <h2 className="text-lg font-semibold mb-3">Upload PDF</h2>
-        <div
-          className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition"
-          onClick={() => fileRef.current?.click()}
-        >
-          <p className="text-gray-400">Click to upload a PDF</p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf"
-            className="hidden"
-            onChange={handleUpload}
-          />
-        </div>
-        {uploadStatus && (
-          <p className="mt-3 text-sm text-green-400">{uploadStatus}</p>
-        )}
-        {uploading && (
-          <p className="mt-2 text-sm text-yellow-400">Processing chunks...</p>
-        )}
-
-        {sessionId && (
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Mind Map Panel */}
-            <div className="p-4 bg-gradient-to-br from-indigo-950/40 to-slate-900 rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition flex flex-col justify-between shadow-lg shadow-black/25">
-              <div>
-                <h3 className="text-sm font-semibold text-white">Interactive Concept Map</h3>
-                <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">
-                  Explore an dynamic, non-crossing knowledge graph of concepts and relationships.
-                </p>
+  if (sessionId) {
+    return (
+      <main className="h-screen w-screen bg-[#070b13] text-white flex overflow-hidden font-sans">
+        {/* Left Side: Document Viewer */}
+        <div className="w-1/2 h-full border-r border-slate-800/80 relative bg-slate-950 flex flex-col">
+          <div className="px-5 py-3 border-b border-slate-800 bg-[#0f172a]/40 flex items-center justify-between shrink-0 select-none">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs font-semibold text-slate-300 truncate max-w-xs">{filename || "Document Viewer"}</span>
+            </div>
+            <span className="text-[10px] text-slate-500 uppercase font-mono tracking-wider">PDF SOURCE</span>
+          </div>
+          <div className="flex-1 min-h-0 w-full relative">
+            {filename ? (
+              <iframe
+                src={`${API}/document/${filename}`}
+                className="w-full h-full border-none block overflow-hidden"
+                title="Uploaded PDF Document"
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
+                <div className="relative w-10 h-10 mb-3">
+                  <div className="absolute inset-0 rounded-full border-2 border-slate-800 animate-pulse" />
+                  <div className="absolute inset-0 rounded-full border-2 border-t-slate-500 animate-spin" />
+                </div>
+                <div className="text-xs">Loading PDF document...</div>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Side: RAG Chat & Dashboard Panel */}
+        <div className="w-1/2 h-full flex flex-col p-6 md:p-8 space-y-6 bg-[#070b13] overflow-y-auto minimal-scrollbar">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4 shrink-0">
+            <div>
+              <h1 className="text-xl font-extrabold text-white tracking-tight">
+                RAG Document Q&A
+              </h1>
+              <p className="text-[10px] text-slate-500 mt-1 font-mono">Active Session: {sessionId}</p>
+            </div>
+            {/* Quick action to upload a new document */}
+            <button
+              onClick={() => {
+                setSessionId("");
+                setStats(null);
+                setFilename("");
+                setMessages([]);
+                window.history.pushState(null, "", window.location.pathname);
+              }}
+              className="text-xs bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg transition-all shadow-lg cursor-pointer"
+            >
+              Upload New PDF
+            </button>
+          </div>
+
+          {/* Ingestion status card */}
+          <div className="bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-2xl p-5 shadow-xl shadow-black/20 shrink-0">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Ingestion Status</h2>
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <p className="text-xs text-emerald-400/90 font-medium truncate">
+                {uploadStatus || `Document chunks indexed and vector store ready.`}
+              </p>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              {/* Mind Map Panel */}
               <Link
                 href={`/mindmap/${sessionId}`}
-                className="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all text-center shadow-md shadow-indigo-600/30 cursor-pointer block"
+                className="group p-4 bg-gradient-to-br from-indigo-950/20 to-slate-900/60 rounded-xl border border-indigo-500/10 hover:border-indigo-500/30 hover:scale-[1.01] transition-all duration-300 flex flex-col justify-between animate-fade-in"
               >
-                Explore Mind Map ➔
+                <span className="text-xs font-bold text-indigo-300 group-hover:text-indigo-200 transition-colors">Concept Map ➔</span>
+                <span className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">Interactive, staggered knowledge graph</span>
               </Link>
-            </div>
 
-            {/* Summary Cards Panel */}
-            <div className="p-4 bg-gradient-to-br from-purple-950/40 to-slate-900 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition flex flex-col justify-between shadow-lg shadow-black/25">
-              <div>
-                <h3 className="text-sm font-semibold text-white">Topic Summary Cards</h3>
-                <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">
-                  Read structured, visual summary cards of core document themes and key takeaways.
-                </p>
-              </div>
+              {/* Summary Cards Panel */}
               <Link
                 href={`/summary/${sessionId}`}
-                className="mt-4 w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all text-center shadow-md shadow-purple-600/30 cursor-pointer block"
+                className="group p-4 bg-gradient-to-br from-purple-950/20 to-slate-900/60 rounded-xl border border-purple-500/10 hover:border-purple-500/30 hover:scale-[1.01] transition-all duration-300 flex flex-col justify-between animate-fade-in"
               >
-                View Summary Cards ➔
+                <span className="text-xs font-bold text-purple-300 group-hover:text-purple-200 transition-colors">Summary Cards ➔</span>
+                <span className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">Core takeaways & topic card breakdown</span>
               </Link>
             </div>
           </div>
-        )}
-      </div>
 
-      {sessionId && stats && (
-        <div className="w-full max-w-2xl bg-gray-900 rounded-xl p-6 mb-6 border border-gray-800">
-          <h2 className="text-lg font-semibold mb-4">Pipeline Metrics</h2>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400">Chunks Indexed</p>
-              <p className="text-2xl font-bold text-blue-400">{stats.chunks}</p>
-            </div>
-            <div className="bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400">Retrieval Mode</p>
-              <p className="text-sm font-medium text-green-400">Hybrid BM25 + Semantic</p>
-            </div>
-            <div className="bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400">Re-ranking</p>
-              <p className="text-sm font-medium text-purple-400">Cross-Encoder Active</p>
-            </div>
-            <div className="bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400">LLM</p>
-              <p className="text-sm font-medium text-yellow-400">{stats.llm}</p>
-            </div>
-          </div>
-
-          <h3 className="text-sm font-semibold text-gray-400 mb-3">RAGAS Baseline Scores</h3>
-          <div className="space-y-2">
-            {[
-              { label: "Faithfulness", value: stats.ragas_baseline.faithfulness },
-              { label: "Answer Relevancy", value: stats.ragas_baseline.answer_relevancy },
-              { label: "Context Precision", value: stats.ragas_baseline.context_precision },
-            ].map(({ label, value }) => (
-              <div key={label}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-400">{label}</span>
-                  <span className="text-white">{(value * 100).toFixed(1)}%</span>
+          {/* Metrics */}
+          {stats && (
+            <div className="bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-2xl p-5 shadow-xl shadow-black/20 shrink-0">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Pipeline Metrics</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                <div className="bg-slate-850/40 rounded-xl p-3 border border-slate-800/40 flex flex-col justify-between">
+                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Indexed Chunks</p>
+                  <p className="text-xl font-bold text-blue-400 mt-2 font-mono">{stats.chunks}</p>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full"
-                    style={{ width: `${value * 100}%` }}
-                  />
+                <div className="bg-slate-850/40 rounded-xl p-3 border border-slate-800/40 flex flex-col justify-between">
+                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Retrieval Mode</p>
+                  <p className="text-xs font-bold text-emerald-400 mt-2">Hybrid BM25</p>
+                </div>
+                <div className="bg-slate-850/40 rounded-xl p-3 border border-slate-800/40 flex flex-col justify-between">
+                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Re-ranking</p>
+                  <p className="text-xs font-bold text-purple-400 mt-2">Cross-Encoder</p>
+                </div>
+                <div className="bg-slate-850/40 rounded-xl p-3 border border-slate-800/40 flex flex-col justify-between">
+                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Model</p>
+                  <p className="text-xs font-bold text-amber-400 mt-2 truncate">Gemini 2.5</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Chat Window */}
-      <div className="w-full max-w-2xl bg-gray-900 rounded-xl border border-gray-800 flex flex-col" style={{ minHeight: "400px" }}>
-        <div className="flex-1 p-6 space-y-4 overflow-y-auto max-h-96">
-          {messages.length === 0 && (
-            <p className="text-gray-600 text-center mt-16">Ask a question about your document...</p>
-          )}
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-lg rounded-xl px-4 py-3 text-sm ${msg.role === "user"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800 text-gray-100"
-                }`}>
-                <p>{msg.content}</p>
-                {msg.sources && msg.sources.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-gray-700">
-                    <p className="text-xs text-gray-400">Sources:</p>
-                    {[...new Set(msg.sources.map((s) => s.page))].map((page) => (
-                      <span key={page} className="text-xs bg-gray-700 rounded px-2 py-0.5 mr-1">
-                        Page {page}
-                      </span>
-                    ))}
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">RAGAS Evaluation Scores</h3>
+              <div className="space-y-3">
+                {[
+                  { label: "Faithfulness", value: stats.ragas_baseline.faithfulness, gradient: "from-emerald-500 to-teal-400" },
+                  { label: "Answer Relevancy", value: stats.ragas_baseline.answer_relevancy, gradient: "from-blue-500 to-indigo-400" },
+                  { label: "Context Precision", value: stats.ragas_baseline.context_precision, gradient: "from-purple-500 to-fuchsia-400" },
+                ].map(({ label, value, gradient }) => (
+                  <div key={label}>
+                    <div className="flex justify-between text-[11px] mb-1 font-sans">
+                      <span className="text-slate-400 font-medium">{label}</span>
+                      <span className="text-slate-200 font-bold">{(value * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-slate-950 rounded-full h-2 border border-slate-800/50 overflow-hidden">
+                      <div
+                        className={`bg-gradient-to-r ${gradient} h-2 rounded-full`}
+                        style={{ width: `${value * 100}%` }}
+                      />
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-800 rounded-xl px-4 py-3 text-sm text-gray-400">
-                Thinking...
-              </div>
+          )}
+
+          {/* Chat Window */}
+          <div className="bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-2xl flex flex-col min-h-[480px] shadow-xl overflow-hidden">
+            {/* Header: Integrated Chat (Requirement 4) */}
+            <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-800/80 bg-slate-900/50 shrink-0 select-none">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+              </span>
+              <h3 className="text-xs font-bold text-slate-200 uppercase tracking-widest font-sans">
+                Integrated Chat
+              </h3>
+            </div>
+
+            {/* Message Area */}
+            <div className="flex-1 p-5 space-y-4 overflow-y-auto">
+              {messages.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-center p-4 my-auto select-none">
+                  <span className="text-2xl mb-2">💬</span>
+                  <p className="text-slate-500 text-xs font-sans">
+                    Ask questions about content, statistics, or structure of the uploaded PDF.
+                  </p>
+                </div>
+              )}
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-lg ${msg.role === "user"
+                    ? "bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-tr-none"
+                    : "bg-slate-800/90 border border-slate-700/50 text-slate-100 rounded-tl-none"
+                    }`}>
+                    <p className="whitespace-pre-wrap font-sans">{msg.content}</p>
+                    {msg.sources && msg.sources.length > 0 && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-700/50">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sources</p>
+                        <div className="flex flex-wrap gap-1">
+                          {[...new Set(msg.sources.map((s) => s.page))].map((page) => (
+                            <span key={page} className="text-[10px] bg-slate-750/80 border border-slate-700 text-slate-300 rounded px-2 py-0.5 font-mono">
+                              Pg. {page}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-slate-800/90 border border-slate-700/50 rounded-2xl rounded-tl-none px-4 py-3 text-xs text-slate-400 flex items-center gap-1.5 shadow-lg select-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t border-slate-800/80 bg-slate-900/20 flex gap-3">
+              <input
+                className="flex-1 bg-slate-850 border border-slate-850 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-slate-500 font-sans"
+                placeholder="Ask a question..."
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAsk()}
+              />
+              <button
+                onClick={handleAsk}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/30"
+              >
+                Ask
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen w-full bg-[#070b13] text-white flex flex-col items-center justify-center p-6 md:p-12 font-sans relative overflow-y-auto">
+      {/* Background ambient glows */}
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 rounded-full bg-purple-500/10 blur-[100px] pointer-events-none" />
+
+      <div className="w-full max-w-3xl flex flex-col items-center text-center z-10 select-none">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white">
+          RAG Document Q&A
+        </h1>
+        <p className="text-slate-400 text-sm md:text-base mt-3 max-w-md leading-relaxed font-sans">
+          Upload any PDF report, manuscript, or textbook. Instant retrieval, structured concept mindmaps, and topic summary cards await you.
+        </p>
+
+        {/* Upload Dropzone */}
+        <div className="w-full max-w-xl bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-2xl p-8 mt-10 shadow-2xl shadow-black/45">
+          <h2 className="text-md font-bold text-white mb-4 font-sans">Upload PDF Document</h2>
+          <div
+            className="border-2 border-dashed border-slate-800 hover:border-blue-500/50 rounded-xl p-8 text-center cursor-pointer bg-slate-950/20 hover:bg-slate-900/20 transition-all duration-300 group"
+            onClick={() => fileRef.current?.click()}
+          >
+            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-200">📂</div>
+            <p className="text-sm font-semibold text-slate-300">Click to select PDF file</p>
+            <p className="text-xs text-slate-500 mt-1 font-sans">Max size 20MB. Document chunks will be parsed instantly.</p>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={handleUpload}
+            />
+          </div>
+          {uploadStatus && (
+            <p className="mt-4 text-xs font-semibold text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 py-2 px-3 rounded-lg animate-pulse">
+              {uploadStatus}
+            </p>
+          )}
+          {uploading && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs text-amber-400 bg-amber-500/5 border border-amber-500/10 py-2 px-3 rounded-lg">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+              <span>Processing and indexing vector embeddings...</span>
             </div>
           )}
         </div>
 
-        {/* Input */}
-        <div className="p-4 border-t border-gray-800 flex gap-3">
-          <input
-            className="flex-1 bg-gray-800 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Ask a question..."
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAsk()}
-          />
-          <button
-            onClick={handleAsk}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium transition"
-          >
-            Ask
-          </button>
+        {/* Feature Cards Grid (Static Highlights) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-16 max-w-4xl text-left">
+          <div className="p-5 bg-slate-900/20 border border-slate-800/50 rounded-2xl">
+            <span className="text-xl">📊</span>
+            <h3 className="text-sm font-bold text-slate-200 mt-2 font-sans">Deep Ingestion</h3>
+            <p className="text-xs text-slate-500 mt-1 font-sans leading-relaxed">
+              Splits PDFs into clean semantic chunks with metadata, calculating baseline RAGAS scores automatically.
+            </p>
+          </div>
+          <div className="p-5 bg-slate-900/20 border border-slate-800/50 rounded-2xl">
+            <span className="text-xl">🧬</span>
+            <h3 className="text-sm font-bold text-slate-200 mt-2 font-sans">Interactive Concept Map</h3>
+            <p className="text-xs text-slate-500 mt-1 font-sans leading-relaxed">
+              Generates static, staggered D3 knowledge graphs mapping core topics and concepts without overlap.
+            </p>
+          </div>
+          <div className="p-5 bg-slate-900/20 border border-slate-800/50 rounded-2xl">
+            <span className="text-xl">🎴</span>
+            <h3 className="text-sm font-bold text-slate-200 mt-2 font-sans">Topic Summary Cards</h3>
+            <p className="text-xs text-slate-500 mt-1 font-sans leading-relaxed">
+              Structures complex documents into summary theme cards containing key bullet takeaways and source page numbers.
+            </p>
+          </div>
         </div>
       </div>
     </main>
