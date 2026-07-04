@@ -133,19 +133,38 @@ export default function Home() {
         )}
 
         {sessionId && (
-          <div className="mt-6 p-4 bg-gradient-to-r from-indigo-950 to-purple-950 rounded-lg border border-indigo-500/30 flex items-center justify-between shadow-lg shadow-indigo-950/20">
-            <div>
-              <h3 className="text-sm font-semibold text-white">Document Concept Mind Map</h3>
-              <p className="text-xs text-indigo-200 mt-1">
-                Explore an interactive knowledge graph of key concepts and relationships.
-              </p>
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Mind Map Panel */}
+            <div className="p-4 bg-gradient-to-br from-indigo-950/40 to-slate-900 rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition flex flex-col justify-between shadow-lg shadow-black/25">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Interactive Concept Map</h3>
+                <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">
+                  Explore an dynamic, non-crossing knowledge graph of concepts and relationships.
+                </p>
+              </div>
+              <Link
+                href={`/mindmap/${sessionId}`}
+                className="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all text-center shadow-md shadow-indigo-600/30 cursor-pointer block"
+              >
+                Explore Mind Map ➔
+              </Link>
             </div>
-            <Link
-              href={`/mindmap/${sessionId}`}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-md shadow-indigo-600/30 hover:shadow-indigo-500/40"
-            >
-              Explore Mind Map ➔
-            </Link>
+
+            {/* Summary Cards Panel */}
+            <div className="p-4 bg-gradient-to-br from-purple-950/40 to-slate-900 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition flex flex-col justify-between shadow-lg shadow-black/25">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Topic Summary Cards</h3>
+                <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">
+                  Read structured, visual summary cards of core document themes and key takeaways.
+                </p>
+              </div>
+              <Link
+                href={`/summary/${sessionId}`}
+                className="mt-4 w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all text-center shadow-md shadow-purple-600/30 cursor-pointer block"
+              >
+                View Summary Cards ➔
+              </Link>
+            </div>
           </div>
         )}
       </div>
