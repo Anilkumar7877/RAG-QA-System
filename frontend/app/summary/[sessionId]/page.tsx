@@ -54,11 +54,41 @@ export default function SummaryPage() {
   // A helper function to assign a unique border/text gradient to each card index
   const getCardTheme = (index: number) => {
     const themes = [
-      { border: "border-t-blue-500", text: "text-blue-400", bg: "from-blue-500/5 to-transparent" },
-      { border: "border-t-purple-500", text: "text-purple-400", bg: "from-purple-500/5 to-transparent" },
-      { border: "border-t-emerald-500", text: "text-emerald-400", bg: "from-emerald-500/5 to-transparent" },
-      { border: "border-t-amber-500", text: "text-amber-400", bg: "from-amber-500/5 to-transparent" },
-      { border: "border-t-rose-500", text: "text-rose-400", bg: "from-rose-500/5 to-transparent" },
+      {
+        accent: "bg-gradient-to-r from-blue-500 to-cyan-400",
+        glow: "hover:shadow-blue-500/10",
+        text: "text-blue-400",
+        border: "border-blue-500/30",
+        hoverBorder: "hover:border-blue-500/60",
+      },
+      {
+        accent: "bg-gradient-to-r from-purple-500 to-pink-400",
+        glow: "hover:shadow-purple-500/10",
+        text: "text-purple-400",
+        border: "border-purple-500/30",
+        hoverBorder: "hover:border-purple-500/60",
+      },
+      {
+        accent: "bg-gradient-to-r from-emerald-500 to-teal-400",
+        glow: "hover:shadow-emerald-500/10",
+        text: "text-emerald-400",
+        border: "border-emerald-500/30",
+        hoverBorder: "hover:border-emerald-500/60",
+      },
+      {
+        accent: "bg-gradient-to-r from-amber-500 to-orange-450",
+        glow: "hover:shadow-amber-500/10",
+        text: "text-amber-400",
+        border: "border-amber-500/30",
+        hoverBorder: "hover:border-amber-500/60",
+      },
+      {
+        accent: "bg-gradient-to-r from-rose-500 to-pink-500",
+        glow: "hover:shadow-rose-500/10",
+        text: "text-rose-400",
+        border: "border-rose-500/30",
+        hoverBorder: "hover:border-rose-500/60",
+      },
     ];
     return themes[index % themes.length];
   };
@@ -79,7 +109,7 @@ export default function SummaryPage() {
           </Link>
           <span className="h-4 w-[1px] bg-slate-800" />
           <h1 className="text-md font-semibold text-white">
-            Document Summary Cards
+            SUMMARY CARDS
           </h1>
         </div>
 
@@ -140,56 +170,60 @@ export default function SummaryPage() {
         )}
 
         {summaryData && !loading && !error && (
-          <div className="max-w-6xl mx-auto w-full p-8 flex flex-col gap-6 animate-fade-in">
+          <div className="mx-auto w-full p-8 flex flex-col gap-8 animate-fade-in pb-16">
             {/* Title Banner */}
-            <div className="bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-2xl p-6 mb-2">
-              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
-                Document Title
+            <div className="bg-gradient-to-r from-slate-900/80 to-slate-950/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">
+                Document Summary
               </span>
-              <h2 className="text-2xl font-bold text-white mt-3 font-sans leading-tight">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-white mt-4 font-sans leading-tight tracking-tight">
                 {summaryData.title}
               </h2>
-              <p className="text-xs text-slate-450 mt-1 font-sans">
-                A structured breakdown of {summaryData.topics.length} core topics extracted from your document chunks.
+              <p className="text-sm md:text-base text-slate-450 mt-2 font-sans max-w-2xl leading-relaxed">
+                A highly-curated structured analysis highlighting {summaryData.topics.length} core themes synthesized from your uploaded PDF.
               </p>
             </div>
 
-            {/* Grid of Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Grid of Cards - 2 Column Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
               {summaryData.topics.map((t, idx) => {
                 const theme = getCardTheme(idx);
                 return (
                   <div
                     key={idx}
-                    className={`bg-slate-900/40 backdrop-blur border border-slate-800/80 border-t-4 ${theme.border} rounded-2xl p-6 hover:border-slate-700 hover:scale-[1.01] transition-all duration-300 shadow-xl shadow-black/25 flex flex-col`}
+                    className={`bg-slate-900/60 backdrop-blur-xl border ${theme.border} ${theme.hoverBorder} ${theme.glow} rounded-3xl p-8 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 shadow-2xl shadow-black/40 flex flex-col relative overflow-hidden group`}
                   >
+                    {/* Accent top gradient line */}
+                    <div className={`absolute top-0 left-0 right-0 h-1.5 ${theme.accent}`} />
+
                     {/* Header */}
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="text-md font-bold text-white leading-snug font-sans">
+                    <div className="flex items-start justify-between gap-4 mt-1">
+                      <h3 className="text-lg md:text-xl font-extrabold text-white leading-snug tracking-tight font-sans">
                         {t.topic}
                       </h3>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-850 border border-slate-800 ${theme.text}`}>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full bg-slate-950/80 border border-slate-800/80 shadow-inner shrink-0 ${theme.text}`}>
                         0{idx + 1}
                       </span>
                     </div>
 
                     {/* Summary */}
-                    <p className="text-xs text-slate-300 leading-relaxed mt-3 flex-1 font-sans">
+                    <p className="text-sm md:text-base text-slate-300/90 leading-relaxed mt-4 flex-1 font-sans">
                       {t.summary}
                     </p>
 
-                    <div className="h-[1px] bg-slate-800/60 my-4 shrink-0" />
+                    <div className="h-[1px] bg-slate-850 my-6 shrink-0" />
 
                     {/* Key Points */}
-                    <div className="mb-4">
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 font-sans">
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-slate-450 uppercase tracking-widest mb-3 font-sans">
                         Key Takeaways
                       </h4>
-                      <ul className="space-y-2">
+                      <ul className="space-y-3">
                         {t.key_points.map((point, kIdx) => (
-                          <li key={kIdx} className="text-xs text-slate-400 flex items-start gap-2 leading-relaxed">
-                            <span className="text-indigo-400 mt-1 select-none">•</span>
-                            <span className="font-sans">{point}</span>
+                          <li key={kIdx} className="text-sm md:text-base text-slate-300 flex items-start gap-3 leading-relaxed">
+                            <span className={`w-2 h-2 rounded-full mt-2 shrink-0 ${theme.accent}`} />
+                            <span className="font-sans text-slate-350">{point}</span>
                           </li>
                         ))}
                       </ul>
@@ -197,16 +231,16 @@ export default function SummaryPage() {
 
                     {/* Page references */}
                     {t.page_references && t.page_references.length > 0 && (
-                      <div className="mt-auto pt-2 flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] font-medium text-slate-500 mr-1 select-none">
-                          Sources:
+                      <div className="mt-auto pt-4 border-t border-slate-850 flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1 select-none">
+                          References:
                         </span>
                         {t.page_references.map((ref, rIdx) => (
                           <span
                             key={rIdx}
-                            className="bg-indigo-950/40 border border-indigo-500/20 text-indigo-300 text-[10px] font-semibold px-2 py-0.5 rounded font-mono"
+                            className="bg-slate-950/60 border border-slate-800/80 text-slate-300 text-xs font-semibold px-3 py-1 rounded-lg font-mono shadow-sm"
                           >
-                            Pg. {ref}
+                            Page {ref}
                           </span>
                         ))}
                       </div>

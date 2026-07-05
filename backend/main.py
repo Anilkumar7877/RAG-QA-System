@@ -236,7 +236,7 @@ async def summary(session_id: str):
     )
 
     prompt = f"""Analyze the following document content and extract a list of 4 to 6 major topics.
-For each topic, provide a high-level summary paragraph, 3 to 5 critical key points (bullet points), and the page numbers where this topic is mentioned.
+For each topic, provide a highly concise summary (1-2 sentences maximum, under 30 words) and 2 to 3 brief key points (takeaways under 15 words each).
 
 Return ONLY a valid JSON object with this exact structure, no markdown, no explanation:
 {{
@@ -244,10 +244,10 @@ Return ONLY a valid JSON object with this exact structure, no markdown, no expla
   "topics": [
     {{
       "topic": "Name of the Topic",
-      "summary": "Concise high-level summary paragraph (2-3 sentences)",
+      "summary": "Concise high-level summary (1-2 sentences, max 30 words)",
       "key_points": [
-        "Significant detail or key takeaway",
-        "Another key detail"
+        "Short critical takeaway (max 15 words)",
+        "Another short takeaway"
       ],
       "page_references": [1, 2]
     }}
