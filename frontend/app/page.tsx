@@ -328,7 +328,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen w-full bg-[#070b13] text-white flex flex-col items-center justify-center p-6 md:p-12 font-sans relative overflow-y-auto">
+    <main className="min-h-screen w-full bg-[#070b13] text-white flex flex-col items-center justify-center p-6 md:p-12 font-sans relative overflow-y-auto minimal-scrollbar">
       {/* Background ambient glows */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 rounded-full bg-purple-500/10 blur-[100px] pointer-events-none" />

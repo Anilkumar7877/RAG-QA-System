@@ -120,6 +120,15 @@ async def get_document(filename: str):
 
 @app.get("/mindmap/{session_id}")
 async def mindmap(session_id: str):
+    # Check cache first to avoid redundant LLM calls
+    cache_path = os.path.join(UPLOAD_DIR, f"cache_mindmap_{session_id}.json")
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Cache read error:", e)
+
     import chromadb
     from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -179,6 +188,9 @@ Document content:
 
     try:
         graph = json.loads(clean)
+        # Cache the generated mind map
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(graph, f, ensure_ascii=False)
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="Failed to parse mind map from LLM")
 
@@ -187,6 +199,15 @@ Document content:
 
 @app.get("/summary/{session_id}")
 async def summary(session_id: str):
+    # Check cache first to avoid redundant LLM calls
+    cache_path = os.path.join(UPLOAD_DIR, f"cache_summary_{session_id}.json")
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Cache read error:", e)
+
     import chromadb
     from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -252,6 +273,9 @@ Document content:
 
     try:
         result = json.loads(clean)
+        # Cache the generated summary cards
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False)
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="Failed to parse document summary from LLM")
 
