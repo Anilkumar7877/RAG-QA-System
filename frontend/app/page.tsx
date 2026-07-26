@@ -16,6 +16,189 @@ interface Message {
   sources?: Source[];
 }
 
+type BlockType = 'paragraph' | 'list' | 'header' | 'space';
+
+interface ListItem {
+  text: string;
+  indent: number;
+  isOrdered: boolean;
+}
+
+interface Block {
+  type: BlockType;
+  level?: number;
+  content?: string;
+  items?: ListItem[];
+}
+
+const parseMarkdown = (text: string): Block[] => {
+  const lines = text.split("\n");
+  const blocks: Block[] = [];
+  let currentList: Block | null = null;
+  
+  for (let line of lines) {
+    const trimmed = line.trim();
+    
+    // Check for empty lines
+    if (trimmed === "") {
+      if (currentList) {
+        blocks.push(currentList);
+        currentList = null;
+      }
+      blocks.push({ type: 'space' });
+      continue;
+    }
+    
+    // Check for headers
+    const headerMatch = line.match(/^(#{1,4})\s+(.*)/);
+    if (headerMatch) {
+      if (currentList) {
+        blocks.push(currentList);
+        currentList = null;
+      }
+      blocks.push({
+        type: 'header',
+        level: headerMatch[1].length,
+        content: headerMatch[2]
+      });
+      continue;
+    }
+    
+    // Check for list items
+    const listMatch = line.match(/^(\s*)([*+-]|\d+\.)\s+(.*)/);
+    if (listMatch) {
+      const leadingSpaces = listMatch[1].length;
+      const marker = listMatch[2];
+      const content = listMatch[3];
+      
+      let indent = 0;
+      if (leadingSpaces >= 6) {
+        indent = 2;
+      } else if (leadingSpaces >= 3) {
+        indent = 1;
+      }
+      
+      const isOrdered = /^\d+\./.test(marker);
+      
+      const newItem: ListItem = {
+        text: content,
+        indent: indent,
+        isOrdered: isOrdered
+      };
+      
+      if (currentList && currentList.type === 'list') {
+        currentList.items?.push(newItem);
+      } else {
+        if (currentList) {
+          blocks.push(currentList);
+        }
+        currentList = {
+          type: 'list',
+          items: [newItem]
+        };
+      }
+      continue;
+    }
+    
+    // Default: paragraph
+    if (currentList) {
+      blocks.push(currentList);
+      currentList = null;
+    }
+    blocks.push({
+      type: 'paragraph',
+      content: line
+    });
+  }
+  
+  if (currentList) {
+    blocks.push(currentList);
+  }
+  
+  return blocks;
+};
+
+const renderInline = (text: string) => {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={index} className="font-bold text-white">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    const codeParts = part.split(/(`.*?`)/g);
+    return codeParts.map((subPart, subIndex) => {
+      if (subPart.startsWith("`") && subPart.endsWith("`")) {
+        return (
+          <code key={`${index}-${subIndex}`} className="bg-slate-900 text-pink-400 px-1 py-0.5 rounded font-mono text-[10px] border border-slate-800">
+            {subPart.slice(1, -1)}
+          </code>
+        );
+      }
+      return subPart;
+    });
+  });
+};
+
+const MarkdownText = ({ text }: { text: string }) => {
+  const blocks = parseMarkdown(text);
+  
+  return (
+    <div className="space-y-1.5 font-sans text-xs text-slate-200">
+      {blocks.map((block, idx) => {
+        switch (block.type) {
+          case 'space':
+            return <div key={idx} className="h-0.5" />;
+          case 'header':
+            if (block.level === 1) {
+              return <h2 key={idx} className="text-xs font-bold text-white mt-2.5 mb-0.5 uppercase tracking-wider">{renderInline(block.content || "")}</h2>;
+            } else if (block.level === 2) {
+              return <h3 key={idx} className="text-xs font-semibold text-slate-100 mt-2 mb-0.5">{renderInline(block.content || "")}</h3>;
+            } else {
+              return <h4 key={idx} className="text-[11px] font-medium text-slate-200 mt-1.5 mb-0.5">{renderInline(block.content || "")}</h4>;
+            }
+          case 'list':
+            return (
+              <ul key={idx} className="space-y-1.5 my-1.5 list-none">
+                {block.items?.map((item, itemIdx) => {
+                  const listStyleType = item.isOrdered 
+                    ? "decimal" 
+                    : item.indent === 0 
+                      ? "disc" 
+                      : item.indent === 1 
+                        ? "circle" 
+                        : "square";
+                  
+                  const indentClass = item.indent === 0 
+                    ? "ml-4" 
+                    : item.indent === 1 
+                      ? "ml-8 text-slate-300" 
+                      : "ml-12 text-slate-400";
+                  
+                  return (
+                    <li 
+                      key={itemIdx} 
+                      style={{ listStyleType }}
+                      className={`list-item ${indentClass} leading-relaxed`}
+                    >
+                      {renderInline(item.text)}
+                    </li>
+                  );
+                })}
+              </ul>
+            );
+          case 'paragraph':
+            return <p key={idx} className="leading-relaxed text-slate-200">{renderInline(block.content || "")}</p>;
+          default:
+            return null;
+        }
+      })}
+    </div>
+  );
+};
+
 export default function Home() {
   const [sessionId, setSessionId] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -277,7 +460,11 @@ export default function Home() {
                     ? "bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-tr-none"
                     : "bg-slate-800/90 border border-slate-700/50 text-slate-100 rounded-tl-none"
                     }`}>
-                    <p className="whitespace-pre-wrap font-sans">{msg.content}</p>
+                    {msg.role === "user" ? (
+                      <p className="whitespace-pre-wrap font-sans">{msg.content}</p>
+                    ) : (
+                      <MarkdownText text={msg.content} />
+                    )}
                     {msg.sources && msg.sources.length > 0 && (
                       <div className="mt-2.5 pt-2 border-t border-slate-700/50">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sources</p>
