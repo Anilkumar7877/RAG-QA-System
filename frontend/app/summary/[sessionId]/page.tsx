@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 
-const API = "http://localhost:8000";
+const API = "/api";
 
 interface TopicSummary {
   topic: string;

@@ -6,7 +6,7 @@ import axios from "axios";
 import Link from "next/link";
 import MindMap from "../../components/MindMap";
 
-const API = "http://localhost:8000";
+const API = "/api";
 
 export default function MindMapPage() {
   const params = useParams();
