@@ -5,9 +5,11 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        // In local development, proxy API calls to the local FastAPI dev server.
-        // On Vercel, Vercel's native router in vercel.json will handle requests to /api/*.
-        destination: "http://localhost:8000/api/:path*",
+        // In production (Vercel), route /api/* to the serverless Python handler (api/index.py)
+        // In local development, proxy to the uvicorn server running on port 8000
+        destination: process.env.NODE_ENV === "production"
+          ? "/api"
+          : "http://localhost:8000/api/:path*",
       },
     ];
   },
