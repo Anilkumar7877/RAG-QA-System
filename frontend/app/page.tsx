@@ -16,7 +16,7 @@ interface Message {
   sources?: Source[];
 }
 
-type BlockType = 'paragraph' | 'list' | 'header' | 'space';
+type BlockType = 'paragraph' | 'list' | 'header' | 'space' | 'fallback_notice';
 
 interface ListItem {
   text: string;
@@ -32,8 +32,20 @@ interface Block {
 }
 
 const parseMarkdown = (text: string): Block[] => {
-  const lines = text.split("\n");
+  let processedText = text;
   const blocks: Block[] = [];
+  
+  // Extract fallback notice if present
+  const noticeMatch = processedText.match(/\[NO_DOC_CONTEXT\]([\s\S]*?)\[\/NO_DOC_CONTEXT\]/);
+  if (noticeMatch) {
+    blocks.push({
+      type: 'fallback_notice',
+      content: noticeMatch[1].trim()
+    });
+    processedText = processedText.replace(/\[NO_DOC_CONTEXT\]([\s\S]*?)\[\/NO_DOC_CONTEXT\]/, "").trim();
+  }
+
+  const lines = processedText.split("\n");
   let currentList: Block | null = null;
   
   for (let line of lines) {
@@ -189,6 +201,16 @@ const MarkdownText = ({ text }: { text: string }) => {
                 })}
               </ul>
             );
+          case 'fallback_notice':
+            return (
+              <div key={idx} className="bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 mb-3 flex items-start gap-2.5 text-amber-200 font-sans">
+                <span className="text-sm select-none mt-0.5">⚠️</span>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">General Knowledge Fallback</p>
+                  <p className="leading-relaxed text-[11px] text-amber-200/90">{renderInline(block.content || "")}</p>
+                </div>
+              </div>
+            );
           case 'paragraph':
             return <p key={idx} className="leading-relaxed text-slate-200">{renderInline(block.content || "")}</p>;
           default:
@@ -209,6 +231,7 @@ export default function Home() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [stats, setStats] = useState<any>(null);
   const [filename, setFilename] = useState<string>("");
+  const [restrictToPdf, setRestrictToPdf] = useState<boolean>(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -276,7 +299,8 @@ export default function Home() {
       const res = await axios.post(`${API}/query`, {
         question,
         session_id: sessionId,
-        chat_history: history
+        chat_history: history,
+        restrict_to_pdf: restrictToPdf
       });
       const botMsg: Message = {
         role: "assistant",
@@ -434,14 +458,42 @@ export default function Home() {
           {/* Chat Window */}
           <div className="bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-2xl flex flex-col min-h-[480px] shadow-xl overflow-hidden">
             {/* Header: Integrated Chat (Requirement 4) */}
-            <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-800/80 bg-slate-900/50 shrink-0 select-none">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-              </span>
-              <h3 className="text-xs font-bold text-slate-200 uppercase tracking-widest font-sans">
-                Integrated Chat
-              </h3>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800/80 bg-slate-900/50 shrink-0 select-none">
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                <h3 className="text-xs font-bold text-slate-200 uppercase tracking-widest font-sans">
+                  Integrated Chat
+                </h3>
+              </div>
+
+              {/* RAG Mode Switcher */}
+              <div className="flex bg-slate-950/80 rounded-lg p-0.5 border border-slate-800/80 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setRestrictToPdf(true)}
+                  className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
+                    restrictToPdf 
+                      ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30" 
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Strict PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRestrictToPdf(false)}
+                  className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
+                    !restrictToPdf 
+                      ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30" 
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  General Ask
+                </button>
+              </div>
             </div>
 
             {/* Message Area */}

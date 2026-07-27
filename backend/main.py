@@ -32,6 +32,7 @@ class QueryRequest(BaseModel):
     question: str
     session_id: str
     chat_history: list = []
+    restrict_to_pdf: bool = True
 
 
 class QueryResponse(BaseModel):
@@ -76,7 +77,12 @@ async def query(request: QueryRequest):
     if not request.session_id:
         raise HTTPException(status_code=400, detail="No document uploaded. Please upload a PDF first.")
 
-    result = ask(request.question, request.session_id, request.chat_history)
+    result = ask(
+        question=request.question,
+        session_id=request.session_id,
+        chat_history=request.chat_history,
+        restrict_to_pdf=request.restrict_to_pdf
+    )
     return result
 
 @app.get("/stats/{session_id}")
