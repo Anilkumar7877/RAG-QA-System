@@ -10,7 +10,7 @@ CHROMA_PATH = "/tmp/chroma_db" if IS_VERCEL else os.getenv("CHROMA_PATH", "./chr
 
 def get_relevant_chunks(query: str, k: int = 5):
     embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/text-embedding-004",
+        model="models/gemini-embedding-001",
         google_api_key=os.getenv("GEMINI_API_KEY")
     )
     

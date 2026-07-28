@@ -16,7 +16,7 @@ CHROMA_PATH = "/tmp/chroma_db" if IS_VERCEL else os.getenv("CHROMA_PATH", "./chr
 # Cache Google Generative AI embedding model globally to avoid loading it on every query
 # Using models/text-embedding-004 is free, fast, and does not require PyTorch/sentence-transformers
 embeddings_model = GoogleGenerativeAIEmbeddings(
-    model="models/text-embedding-004",
+    model="models/gemini-embedding-001",
     google_api_key=os.getenv("GEMINI_API_KEY")
 )
 
